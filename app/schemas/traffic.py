@@ -12,6 +12,24 @@ class TrafficFlowRequest(BaseModel):
 
 
 class TrafficFlowResponse(BaseModel):
+    """Response model for traffic flow API endpoint"""
+    road_segment_id: str
+    start_latitude: float
+    start_longitude: float
+    end_latitude: float
+    end_longitude: float
+    current_speed_kmph: float  # Changed from int to float for precision
+    free_flow_speed_kmph: float  # Changed from int to float for precision
+    confidence_level: float
+    congestion_level: str
+    congestion_factor: float
+
+    class Config:
+        from_attributes = True
+
+
+class TrafficFlowDBResponse(BaseModel):
+    """Database model response with cache metadata"""
     cache_id: uuid.UUID
     road_segment_id: str
     start_latitude: Decimal
@@ -35,11 +53,8 @@ class RouteTrafficRequest(BaseModel):
 
 
 class RouteTrafficResponse(BaseModel):
-    total_distance_km: Decimal
-    total_time_minutes: int
-    traffic_delay_minutes: int
-    congestion_summary: dict
-    route_segments: List[TrafficFlowResponse]
+    route: dict
+    segments: List[TrafficFlowResponse]
 
 
 class TrafficIncidentResponse(BaseModel):

@@ -1,30 +1,32 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-import logging
 import os
 from dotenv import load_dotenv
 
 try:
     from app.routes import traffic
     from app.database import engine, Base
+    from app.utils.logger import logger
 except ModuleNotFoundError:
     import sys
     import os as _os
     sys.path.append(_os.path.dirname(_os.path.dirname(__file__)))
     from app.routes import traffic
     from app.database import engine, Base
+    from app.utils.logger import logger
 
 # Load environment variables
 load_dotenv()
 
-# Configure logging
-logging.basicConfig(
-    level=logging.INFO,
-    format="%(asctime)s - %(name)s - %(levelname)s - %(message)s"
-)
+logger.info("🚀 Starting Traffic Service...")
 
 # Create tables
-Base.metadata.create_all(bind=engine)
+try:
+    Base.metadata.create_all(bind=engine)
+    logger.info("✅ Database tables created successfully")
+except Exception as e:
+    logger.error(f"❌ Failed to create database tables: {str(e)}")
+    raise
 
 app = FastAPI(
     title="Traffic Service",
@@ -45,8 +47,20 @@ app.add_middleware(
 # Include routers
 app.include_router(traffic.router, prefix="/api/v1")
 
+@app.on_event("startup")
+async def startup_event():
+    logger.info("✅ Traffic Service started successfully")
+    logger.info(f"📍 Service URL: http://0.0.0.0:8002")
+    logger.info(f"📚 API Docs: http://localhost:8002/docs")
+    logger.info(f"🗺️ HERE API configured: {bool(os.getenv('HERE_API_KEY'))}")
+
+@app.on_event("shutdown")
+async def shutdown_event():
+    logger.info("🛑 Traffic Service shutting down...")
+
 @app.get("/")
 async def root():
+    logger.debug("Root endpoint called")
     return {
         "message": "Traffic Service is running",
         "status": "healthy",
@@ -55,11 +69,21 @@ async def root():
 
 @app.get("/health")
 async def health_check():
-    return {
-        "status": "healthy",
-        "service": "traffic-service",
-        "here_api_configured": bool(os.getenv("HERE_API_KEY"))
-    }
+    logger.debug("Health check endpoint called")
+    try:
+        here_api_configured = bool(os.getenv("HERE_API_KEY"))
+        return {
+            "status": "healthy",
+            "service": "traffic-service",
+            "here_api_configured": here_api_configured
+        }
+    except Exception as e:
+        logger.error(f"Health check failed: {str(e)}")
+        return {
+            "status": "unhealthy",
+            "service": "traffic-service",
+            "error": str(e)
+        }
 
 if __name__ == "__main__":
     import uvicorn
