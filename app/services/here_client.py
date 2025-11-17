@@ -1,11 +1,10 @@
-import time
+import logging
+import os
+from datetime import datetime
+from typing import Dict, List, Optional
 
 import requests
-import os
-from typing import Dict, List, Optional, Tuple
-from datetime import datetime, timedelta
-from tenacity import retry, stop_after_attempt, wait_exponential, retry_if_exception
-import logging
+from tenacity import retry, stop_after_attempt, wait_exponential
 
 logger = logging.getLogger(__name__)
 
